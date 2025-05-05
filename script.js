@@ -1,96 +1,98 @@
-let data = [];
+let transactions = [];
 
-function handleCSVUpload() {
-  const fileInput = document.getElementById("csvFile");
-  const file = fileInput.files[0];
-  if (!file) return;
+document.getElementById('transaction-form').addEventListener('submit', function (e) {
+  e.preventDefault();
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: function (results) {
-      data = results.data.map(row => ({
-        data: row.DATA,
-        servico: row.SERVIÇO || row.SERVICO,
-        valor: parseFloat((row.VALOR || "0").replace(/\D+/g, "")),
-        valorFormatado: row.VALOR,
-        estado: row.ESTADO,
-        link: row.LINK,
-        obs: row.OBS
-      }));
-      renderFilters();
-      renderFolders(data);
-    }
-  });
-}
+  const description = document.getElementById('description').value;
+  const amount = parseFloat(document.getElementById('amount').value);
+  const category = document.getElementById('category').value;
+  const date = document.getElementById('date').value;
 
-function renderFolders(filteredData) {
-  const folderList = document.getElementById("folderList");
-  folderList.innerHTML = "";
+  if (!description || isNaN(amount) || !date) return;
 
-  if (!filteredData.length) {
-    folderList.innerHTML = "<p style='color:white;'>Nenhum resultado encontrado.</p>";
-    return;
-  }
+  const transaction = {
+    description,
+    amount,
+    category,
+    date
+  };
 
-  filteredData.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "folder";
-    div.onclick = () => {
-      if (item.link && item.link.includes("http")) window.open(item.link, "_blank");
-    };
+  transactions.push(transaction);
+  updateUI();
+  this.reset();
+});
 
-    div.innerHTML = `
-      <div class="folder-icon">📁</div>
-      <div class="folder-info">
-        <span><strong>${item.servico}</strong></span>
-        <span>${item.data}</span>
-        <span>${item.estado}</span>
-        <span>${item.valorFormatado}</span>
-      </div>
+function updateUI() {
+  const list = document.getElementById('transaction-list');
+  list.innerHTML = '';
+
+  let income = 0;
+  let expense = 0;
+
+  transactions.forEach(tx => {
+    const li = document.createElement('li');
+    li.className = tx.amount >= 0 ? 'positive' : 'negative';
+    li.innerHTML = `
+      ${tx.date} - ${tx.description} (${tx.category})
+      <span>${formatCurrency(tx.amount)}</span>
     `;
+    list.appendChild(li);
 
-    folderList.appendChild(div);
+    if (tx.amount >= 0) income += tx.amount;
+    else expense += tx.amount;
+  });
+
+  const balance = income + expense;
+
+  document.getElementById('income').innerText = formatCurrency(income);
+  document.getElementById('expense').innerText = formatCurrency(Math.abs(expense));
+  document.getElementById('balance').innerText = formatCurrency(balance);
+}
+
+function formatCurrency(value) {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
   });
 }
 
-function renderFilters() {
-  const estados = [...new Set(data.map(item => item.estado).filter(Boolean))];
-  const servicos = [...new Set(data.map(item => item.servico).filter(Boolean))];
+// Menu toggle
+function toggleMenu() {
+  const menu = document.getElementById('side-menu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
 
-  const estadoSelect = document.getElementById("estadoFilter");
-  const servicoSelect = document.getElementById("servicoFilter");
+// Navegação
+function showMain() {
+  document.getElementById('main-section').style.display = 'block';
+  document.getElementById('detailed-history').style.display = 'none';
+}
 
-  estadoSelect.innerHTML = `<option value="">Todos os Estados</option>`;
-  servicoSelect.innerHTML = `<option value="">Todos os Serviços</option>`;
+function showDetailedHistory() {
+  document.getElementById('main-section').style.display = 'none';
+  document.getElementById('detailed-history').style.display = 'block';
 
-  estados.forEach(estado => {
-    estadoSelect.innerHTML += `<option value="${estado}">${estado}</option>`;
-  });
+  const list = document.getElementById('detailed-list');
+  list.innerHTML = '';
 
-  servicos.forEach(servico => {
-    servicoSelect.innerHTML += `<option value="${servico}">${servico}</option>`;
+  transactions.forEach(tx => {
+    const li = document.createElement('li');
+    li.innerText = `${tx.date} - ${tx.description} (${tx.category}): ${formatCurrency(tx.amount)}`;
+    list.appendChild(li);
   });
 }
 
-function applyFilter() {
-  const estado = document.getElementById("estadoFilter").value;
-  const servico = document.getElementById("servicoFilter").value;
-  const boasPropostas = document.getElementById("boasPropostas").checked;
+// Exportar para CSV
+document.getElementById('export-csv').addEventListener('click', () => {
+  let csvContent = "data:text/csv;charset=utf-8,Data,Descrição,Valor,Categoria\n";
+  transactions.forEach(tx => {
+    csvContent += `${tx.date},${tx.description},${tx.amount},${tx.category}\n`;
+  });
 
-  let filtered = [...data];
-
-  if (estado) {
-    filtered = filtered.filter(item => item.estado === estado);
-  }
-
-  if (servico) {
-    filtered = filtered.filter(item => item.servico === servico);
-  }
-
-  if (boasPropostas) {
-    filtered = filtered.filter(item => item.valor > 1000000);
-  }
-
-  renderFolders(filtered);
-}
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "transacoes.csv");
+  document.body.appendChild(link);
+  link.click();
+});
