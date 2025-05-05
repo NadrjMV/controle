@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle Financeiro - Jordan</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+    <nav id="side-menu">
+      <ul>
+        <li onclick="showMain()">Principal</li>
+        <li onclick="showDetailedHistory()">Histórico Detalhado</li>
+      </ul>
+    </nav>
+
+    <div id="main-section">
+      <header>
+        <h1>Saldo atual em contas</h1>
+        <div id="balance">R$ 0,00</div>
+        <div class="totals">
+          <div class="incomes">Receitas<br><span id="income">R$ 0,00</span></div>
+          <div class="expenses">Despesas<br><span id="expense">R$ 0,00</span></div>
+        </div>
+      </header>
+
+      <section class="form-section">
+        <form id="transaction-form">
+            <input type="date" id="date" required />
+          <input type="text" id="description" placeholder="Descrição" required />
+          <input type="number" id="amount" placeholder="Valor (ex: -50 ou 100)" required />
+          <select id="category">
+            <option value="salario">Salário</option>
+            <option value="alimentacao">Alimentação</option>
+            <option value="lazer">Lazer</option>
+            <option value="renda_extra">Renda Extra</option>
+            <option value="jordan_cell">Jordan Cell</option>
+          </select>
+          <button type="submit">Adicionar</button>
+        </form>
+      </section>
+
+      <section class="transactions">
+        <h2>Histórico</h2>
+        <ul id="transaction-list"></ul>
+      </section>
+      <button id="export-csv">Exportar CSV</button>
+
+
+      <section class="chart-section">
+        <h2>Gráfico de Entradas e Saídas</h2>
+        <select id="month-selector"></select>
+        <canvas id="transactionsChart"></canvas>
+      </section>
+    </div>
+
+    <div id="detailed-history" style="display:none">
+      <h2>Histórico Detalhado</h2>
+      <ul id="detailed-list"></ul>
+    </div>
+  </div>
+</body>
+</html>
+
+<!-- style.css -->
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  body {
+    background-color: #121212;
+    color: #fff;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 600px;
+    margin: auto;
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 10px #000;
+    position: relative;
+  }
+
+  .menu-toggle {
+    font-size: 24px;
+    cursor: pointer;
+    position: absolute;
+    left: 20px;
+    top: 10px;
+  }
+
+  #side-menu {
+    display: none;
+    position: absolute;
+    top: 40px;
+    left: 20px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  #side-menu ul {
+    list-style: none;
+  }
+
+  #side-menu li {
+    padding: 8px;
+    cursor: pointer;
+  }
+
+  header h1 {
+    text-align: center;
+    color: #888;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+
+  #balance {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  .totals {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+
+  .incomes span {
+    color: #00d084;
+    font-weight: bold;
+  }
+
+  .expenses span {
+    color: #ff4d4d;
+    font-weight: bold;
+  }
+
+  .form-section {
+    margin-top: 30px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  input, select, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+  }
+
+  input, select {
+    background-color: #2a2a2a;
+    color: #fff;
+  }
+
+  button {
+    background-color: #8a2be2;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background-color: #6b1fb1;
+  }
+
+  .transactions {
+    margin-top: 30px;
+  }
+
+  .transactions h2 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+
+  #transaction-list {
+    list-style-type: none;
+  }
+
+  #transaction-list li {
+    background: #2a2a2a;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #transaction-list li.positive {
+    border-left: 5px solid #00d084;
+  }
+
+  #transaction-list li.negative {
+    border-left: 5px solid #ff4d4d;
+  }
+
+  .chart-section {
+    margin-top: 30px;
+  }
+
+  #transactionsChart {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 10px;
+  }
+
+  #detailed-history ul {
+    list-style-type: none;
+    margin-top: 20px;
+  }
+
+  #detailed-history li {
+    background: #2a2a2a;
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 8px;
+  }
+</style>
